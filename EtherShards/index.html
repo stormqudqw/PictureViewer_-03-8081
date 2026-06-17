@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Осколки Эфира</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="game-root">
+    <canvas id="game"></canvas>
+
+    <!-- Heads-up display -->
+    <div id="hud" class="hidden">
+      <div id="hud-top-left">
+        <div class="bar-group">
+          <div class="vital"><span class="vlabel">HP</span><div class="bar hp"><i id="hp-fill"></i><b id="hp-text"></b></div></div>
+          <div class="vital"><span class="vlabel">EN</span><div class="bar en"><i id="en-fill"></i><b id="en-text"></b></div></div>
+          <div class="vital xp"><div class="bar xp"><i id="xp-fill"></i><b id="xp-text"></b></div></div>
+        </div>
+        <div id="lvl-badge"><span id="lvl-num">1</span><small>УРОВЕНЬ</small></div>
+      </div>
+
+      <div id="hud-top-right">
+        <div id="rep-mini"></div>
+        <div id="rift-info" class="hidden"></div>
+        <div id="clock"></div>
+      </div>
+
+      <div id="combo-display"></div>
+
+      <div id="abilities"></div>
+
+      <div id="minimap-wrap"><canvas id="minimap" width="170" height="170"></canvas></div>
+
+      <div id="toast-stack"></div>
+
+      <div id="hint-bar">
+        <span class="key">WASD</span> движение
+        <span class="key">ЛКМ</span> атака
+        <span class="key">ПКМ / Q E</span> заклинания
+        <span class="key">Space</span> рывок
+        <span class="key">1-4</span> комбо-стихии
+        <span class="key">C</span> персонаж
+        <span class="key">T</span> таланты
+        <span class="key">M</span> карта мира
+        <span class="key">F</span> взаимодействие
+      </div>
+    </div>
+
+    <!-- Full screen panels -->
+    <div id="overlay" class="hidden"></div>
+
+    <!-- Title / main menu -->
+    <div id="title" class="screen">
+      <div class="title-stars"></div>
+      <div class="title-inner">
+        <h1 class="game-logo">ОСКОЛКИ<span>ЭФИРА</span></h1>
+        <p class="tagline">Мир раскололся. Собери осколки — и реши его судьбу.</p>
+        <div class="menu-btns">
+          <button id="btn-start" class="primary">Новая игра</button>
+          <button id="btn-continue">Продолжить</button>
+          <button id="btn-howto">Как играть</button>
+        </div>
+        <p class="version">v1.0 · Canvas Engine · Тарасов 03Пко8081</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
