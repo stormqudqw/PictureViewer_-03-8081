@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Календарь смен — учёт дохода</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo">🗓️</span>
+      <div>
+        <h1>Календарь смен</h1>
+        <p class="subtitle">Универсальный учёт рабочих смен и дохода</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <label class="currency-field">
+        Валюта
+        <input id="currencyInput" type="text" maxlength="4" value="₽" title="Символ валюты">
+      </label>
+      <button id="exportExcelBtn" class="btn btn-primary">⬇ Экспорт в Excel</button>
+      <button id="exportCsvBtn" class="btn">⬇ CSV</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ===== Шаблоны смен ===== -->
+    <aside class="panel templates-panel">
+      <div class="panel-head">
+        <h2>Шаблоны смен</h2>
+        <button id="addTemplateBtn" class="btn btn-small">+ Добавить</button>
+      </div>
+      <p class="hint">Выберите шаблон, затем кликайте по дням календаря, чтобы проставить смену.</p>
+      <ul id="templateList" class="template-list"></ul>
+    </aside>
+
+    <!-- ===== Календарь ===== -->
+    <section class="panel calendar-panel">
+      <div class="calendar-toolbar">
+        <button id="prevMonthBtn" class="btn btn-nav" title="Предыдущий месяц">‹</button>
+        <h2 id="monthTitle" class="month-title"></h2>
+        <button id="nextMonthBtn" class="btn btn-nav" title="Следующий месяц">›</button>
+        <button id="todayBtn" class="btn btn-small">Сегодня</button>
+      </div>
+      <div class="weekdays">
+        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span>
+        <span>Пт</span><span class="we">Сб</span><span class="we">Вс</span>
+      </div>
+      <div id="calendarGrid" class="calendar-grid"></div>
+      <div class="active-template-bar">
+        <span>Активный шаблон:</span>
+        <strong id="activeTemplateName">не выбран</strong>
+        <button id="clearActiveBtn" class="btn btn-small btn-ghost">Сбросить</button>
+      </div>
+    </section>
+
+    <!-- ===== Статистика ===== -->
+    <aside class="panel stats-panel">
+      <div class="panel-head">
+        <h2>Статистика</h2>
+        <select id="statsScope" class="scope-select">
+          <option value="month">За месяц</option>
+          <option value="year">За год</option>
+          <option value="all">За всё время</option>
+        </select>
+      </div>
+      <div class="stat-cards">
+        <div class="stat-card income">
+          <span class="stat-label">Доход</span>
+          <span id="statIncome" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Часов</span>
+          <span id="statHours" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Смен</span>
+          <span id="statShifts" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Ср. за смену</span>
+          <span id="statAvg" class="stat-value">0</span>
+        </div>
+      </div>
+      <h3 class="breakdown-title">По шаблонам</h3>
+      <ul id="statsBreakdown" class="breakdown-list"></ul>
+    </aside>
+  </main>
+
+  <!-- ===== Модальное окно шаблона ===== -->
+  <div id="templateModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="templateModalTitle">Шаблон смены</h2>
+      <form id="templateForm" class="form">
+        <input type="hidden" id="templateId">
+        <label class="field">
+          Название
+          <input id="tplName" type="text" required placeholder="Например: Дневная">
+        </label>
+        <div class="field-row">
+          <label class="field">
+            Начало
+            <input id="tplStart" type="time" required value="09:00">
+          </label>
+          <label class="field">
+            Конец
+            <input id="tplEnd" type="time" required value="18:00">
+          </label>
+          <label class="field">
+            Перерыв, мин
+            <input id="tplBreak" type="number" min="0" step="5" value="0">
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            Тип оплаты
+            <select id="tplPayType">
+              <option value="hourly">Почасовая</option>
+              <option value="fixed">Фиксированная за смену</option>
+            </select>
+          </label>
+          <label class="field">
+            <span id="tplRateLabel">Ставка в час</span>
+            <input id="tplRate" type="number" min="0" step="0.01" required value="200">
+          </label>
+          <label class="field">
+            Цвет
+            <input id="tplColor" type="color" value="#4f86f7">
+          </label>
+        </div>
+        <p id="tplPreview" class="tpl-preview"></p>
+        <div class="modal-actions">
+          <button type="button" id="deleteTemplateBtn" class="btn btn-danger hidden">Удалить</button>
+          <span class="spacer"></span>
+          <button type="button" id="cancelTemplateBtn" class="btn">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== Модальное окно дня ===== -->
+  <div id="dayModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="dayModalTitle">Смены за день</h2>
+      <ul id="dayShiftList" class="day-shift-list"></ul>
+      <div class="add-shift-row">
+        <select id="dayTemplateSelect"></select>
+        <button type="button" id="addShiftBtn" class="btn btn-primary btn-small">+ Добавить смену</button>
+      </div>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button type="button" id="closeDayBtn" class="btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
