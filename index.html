@@ -285,6 +285,10 @@
   <div class="sub">Имя, должность и почасовая ставка</div>
   <div class="field"><label for="empName">Имя</label><input type="text" id="empName" placeholder="Тарасов Михаил" autocomplete="off"></div>
   <div class="field"><label for="empRole">Должность</label><input type="text" id="empRole" placeholder="Бармен" autocomplete="off"></div>
+  <div class="two">
+    <div class="field"><label for="empBday">День рождения</label><input type="text" id="empBday" placeholder="10 сентября" autocomplete="off"></div>
+    <div class="field"><label for="empPhone">Телефон</label><input type="tel" id="empPhone" placeholder="8-919-100-82-23" autocomplete="off"></div>
+  </div>
   <div class="field"><label for="empRate">Ставка · ₽ в час</label><input type="number" id="empRate" placeholder="350" inputmode="numeric"></div>
   <div class="acts">
     <button class="btn-del" id="empDel" style="display:none">Удалить</button>
@@ -301,7 +305,8 @@
   <button class="menu-item" id="mExport"><span class="mk">01</span><span class="t"><span class="a">Экспорт в Excel</span><span class="b">Расписание и выплаты за месяц</span></span><span class="ar">↧</span></button>
   <button class="menu-item" id="mImport"><span class="mk">02</span><span class="t"><span class="a">Импорт из Excel</span><span class="b">Загрузить файл обратно</span></span><span class="ar">↥</span></button>
   <button class="menu-item" id="mRename"><span class="mk">03</span><span class="t"><span class="a">Название заведения</span><span class="b" id="mRenameSub">Не задано</span></span><span class="ar">→</span></button>
-  <button class="menu-item danger" id="mClear"><span class="mk">04</span><span class="t"><span class="a">Очистить месяц</span><span class="b">Снять все смены текущего месяца</span></span><span class="ar">×</span></button>
+  <button class="menu-item" id="mNote"><span class="mk">04</span><span class="t"><span class="a">Примечание к графику</span><span class="b" id="mNoteSub">Не задано</span></span><span class="ar">→</span></button>
+  <button class="menu-item danger" id="mClear"><span class="mk">05</span><span class="t"><span class="a">Очистить месяц</span><span class="b">Снять все смены текущего месяца</span></span><span class="ar">×</span></button>
   <div style="height:14px"></div>
   <button class="btn btn-primary" id="menuClose" style="width:100%">Закрыть</button>
   <input type="file" id="fileInput" accept=".xlsx,.xls">
@@ -313,8 +318,9 @@
 const WK=['вс','пн','вт','ср','чт','пт','сб'];
 const WKF=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
 const MON=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const MONG=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
-let state={employees:[],shifts:{},venue:''};
+let state={employees:[],shifts:{},venue:'',note:''};
 let view={y:new Date().getFullYear(),m:new Date().getMonth(),tab:'cal'};
 let editing={empId:null,shiftKey:null,day:null};
 const TODAY=new Date();
@@ -323,7 +329,7 @@ const STORE_KEY='tabel:data';
 /* storage — key-value store (localStorage for the offline single-file build) */
 function load(){
   try{const raw=localStorage.getItem(STORE_KEY);if(raw)state=JSON.parse(raw);}catch(e){}
-  state.employees=state.employees||[];state.shifts=state.shifts||{};state.venue=state.venue||'';
+  state.employees=state.employees||[];state.shifts=state.shifts||{};state.venue=state.venue||'';state.note=state.note||'';
 }
 let saveT;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{
@@ -338,6 +344,8 @@ function key(empId,d){return empId+'|'+view.y+'-'+pad(view.m+1)+'-'+pad(d)}
 function shiftHours(s){if(!s)return 0;let[a,b]=s.start.split(':').map(Number),[c,d]=s.end.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<=0)m+=1440;return m/60;}
 function fmtMoney(n){return Math.round(n).toLocaleString('ru-RU')+' ₽'}
 function fmtH(h){return (Math.round(h*10)/10).toString().replace('.',',')}
+function ct(t){let[h,m]=(t||'').split(':');h=String(parseInt(h,10)||0);return m==='00'?h:h+':'+m;} /* "10:00"->"10", "23:30"->"23:30", "24:00"->"24" */
+function fmtShift(s){return ct(s.start)+'-'+ct(s.end);}
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function isToday(d){return view.y===TODAY.getFullYear()&&view.m===TODAY.getMonth()&&d===TODAY.getDate()}
 
@@ -353,6 +361,7 @@ function render(){
   document.getElementById('monthLabel').innerHTML=MON[view.m]+'<span class="yr">'+view.y+'</span>';
   document.getElementById('venueName').textContent=state.venue||'';
   document.getElementById('mRenameSub').textContent=state.venue||'Не задано';
+  document.getElementById('mNoteSub').textContent=state.note||'Не задано';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===view.tab));
   document.getElementById('app').innerHTML=view.tab==='cal'?renderCal():renderEmp();
   bindDynamic();
@@ -409,7 +418,7 @@ function renderEmp(){
         <span class="pidx">${pad(i+1)}</span>
         <span class="meta">
           <div class="nm">${esc(e.name)}</div>
-          <div class="sub">${e.role?esc(e.role)+' · ':''}<b>${e.rate} ₽/ч</b> · ${MON[view.m]}: ${fmtMoney(st.pay)}</div>
+          <div class="sub">${e.role?esc(e.role)+' · ':''}<b>${e.rate} ₽/ч</b> · ${MON[view.m]}: ${fmtMoney(st.pay)}${e.phone?' · '+esc(e.phone):''}</div>
         </span>
         <button class="editlink" data-edit="${e.id}">Правка</button>
       </div>`;
@@ -471,6 +480,8 @@ function openEmp(id){
   document.getElementById('empTitle').textContent=e?'Сотрудник':'Новый сотрудник';
   document.getElementById('empName').value=e?e.name:'';
   document.getElementById('empRole').value=e?(e.role||''):'';
+  document.getElementById('empBday').value=e?(e.bday||''):'';
+  document.getElementById('empPhone').value=e?(e.phone||''):'';
   document.getElementById('empRate').value=e?e.rate:'';
   document.getElementById('empDel').style.display=e?'block':'none';
   show('empScrim');
@@ -479,10 +490,12 @@ function openEmp(id){
 document.getElementById('empSave').onclick=()=>{
   const name=document.getElementById('empName').value.trim();
   const role=document.getElementById('empRole').value.trim();
+  const bday=document.getElementById('empBday').value.trim();
+  const phone=document.getElementById('empPhone').value.trim();
   const rate=parseFloat(document.getElementById('empRate').value)||0;
   if(!name){toast('Введите имя');return}
-  if(editing.empId){const e=state.employees.find(x=>x.id===editing.empId);e.name=name;e.role=role;e.rate=rate;}
-  else state.employees.push({id:uid(),name,role,rate});
+  if(editing.empId){const e=state.employees.find(x=>x.id===editing.empId);e.name=name;e.role=role;e.bday=bday;e.phone=phone;e.rate=rate;}
+  else state.employees.push({id:uid(),name,role,bday,phone,rate});
   save();hide('empScrim');render();toast('Сохранено');
 };
 document.getElementById('empDel').onclick=()=>{
@@ -497,6 +510,7 @@ document.getElementById('empCancel').onclick=()=>hide('empScrim');
 document.getElementById('menuBtn').onclick=()=>show('menuScrim');
 document.getElementById('menuClose').onclick=()=>hide('menuScrim');
 document.getElementById('mRename').onclick=()=>{const v=prompt('Название заведения:',state.venue||'');if(v!==null){state.venue=v.trim();save();render();}};
+document.getElementById('mNote').onclick=()=>{const v=prompt('Примечание к графику (печатается внизу выгрузки):',state.note||'');if(v!==null){state.note=v.trim();save();render();}};
 document.getElementById('mClear').onclick=()=>{
   if(!confirm('Снять все смены за '+MON[view.m]+'?'))return;
   const pre='|'+view.y+'-'+pad(view.m+1)+'-';
@@ -504,30 +518,54 @@ document.getElementById('mClear').onclick=()=>{
   save();render();hide('menuScrim');toast('Месяц очищен');
 };
 
-/* excel export */
+/* excel export — лист «График» в формате реального табеля заведения */
 document.getElementById('mExport').onclick=()=>{
   const D=dim(view.y,view.m);
-  const header=['Сотрудник','Должность','Ставка ₽/ч'];
-  for(let d=1;d<=D;d++)header.push(d+' '+WK[new Date(view.y,view.m,d).getDay()]);
+  /* шапка: Сотрудник | ДР | Телефон | дни… | Часов | Смен | К выплате */
+  const FIX=['Сотрудник','ДР','Телефон'];
+  const header=FIX.slice();
+  for(let d=1;d<=D;d++)header.push(d+' '+MONG[view.m]);
   header.push('Часов','Смен','К выплате ₽');
-  const rows=[header];
-  state.employees.forEach(e=>{
-    const r=[e.name,e.role||'',e.rate];let h=0,c=0;
-    for(let d=1;d<=D;d++){const s=state.shifts[key(e.id,d)];if(s){r.push(s.start+'–'+s.end);h+=shiftHours(s);c++;}else r.push('');}
-    r.push(Math.round(h*10)/10,c,Math.round(h*e.rate));rows.push(r);
+  const W=header.length;
+  const blank=()=>new Array(W).fill('');
+
+  const titleRow=blank();titleRow[0]=('ГРАФИК РАБОТЫ'+(state.venue?' · '+state.venue:''))+' — '+MON[view.m]+' '+view.y;
+  const rows=[titleRow,header];
+  const merges=[{s:{r:0,c:0},e:{r:0,c:W-1}}]; /* заголовок на всю ширину */
+
+  /* группировка по должности, в порядке появления; без должности — в конец */
+  const groups=[];const idx={};
+  state.employees.forEach(e=>{const g=(e.role||'').trim()||'Без должности';if(!(g in idx)){idx[g]=groups.length;groups.push({name:g,list:[]});}groups[idx[g]].list.push(e);});
+
+  groups.forEach(g=>{
+    const gh=blank();gh[0]=g.name.toUpperCase();rows.push(gh);
+    merges.push({s:{r:rows.length-1,c:0},e:{r:rows.length-1,c:W-1}});
+    g.list.forEach(e=>{
+      const r=[e.name,e.bday||'',e.phone||''];let h=0,c=0;
+      for(let d=1;d<=D;d++){const s=state.shifts[key(e.id,d)];if(s){r.push(fmtShift(s));h+=shiftHours(s);c++;}else r.push('');}
+      r.push(Math.round(h*10)/10,c,Math.round(h*e.rate));rows.push(r);
+    });
   });
+
+  if(state.note){const nr=blank();nr[0]=state.note;rows.push(blank());rows.push(nr);
+    merges.push({s:{r:rows.length-1,c:0},e:{r:rows.length-1,c:W-1}});}
+
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=header.map((_,i)=>({wch:i<2?16:(i<3?11:9)}));
+  ws['!merges']=merges;
+  ws['!cols']=header.map((_,i)=>i===0?{wch:20}:i===1?{wch:13}:i===2?{wch:16}:i>=W-3?{wch:10}:{wch:8});
+  ws['!freeze']={xSplit:3,ySplit:2};
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Смены');
-  const data=[['empId','name','role','rate','date','start','end']];
+  XLSX.utils.book_append_sheet(wb,ws,'График');
+
+  /* служебный лист — плоский, для чистого реимпорта и будущей синхронизации с бэкендом */
+  const data=[['empId','name','role','rate','phone','bday','date','start','end']];
   state.employees.forEach(e=>{
     let any=false;
-    Object.keys(state.shifts).forEach(k=>{if(k.startsWith(e.id+'|')){const s=state.shifts[k];data.push([e.id,e.name,e.role||'',e.rate,k.split('|')[1],s.start,s.end]);any=true;}});
-    if(!any)data.push([e.id,e.name,e.role||'',e.rate,'','','']);
+    Object.keys(state.shifts).forEach(k=>{if(k.startsWith(e.id+'|')){const s=state.shifts[k];data.push([e.id,e.name,e.role||'',e.rate,e.phone||'',e.bday||'',k.split('|')[1],s.start,s.end]);any=true;}});
+    if(!any)data.push([e.id,e.name,e.role||'',e.rate,e.phone||'',e.bday||'','','','']);
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),'_data');
-  XLSX.writeFile(wb,`Табель_${MON[view.m]}_${view.y}.xlsx`);
+  XLSX.writeFile(wb,`График_${MON[view.m]}_${view.y}.xlsx`);
   hide('menuScrim');toast('Файл скачан');
 };
 
@@ -548,8 +586,8 @@ function importFromData(ws){
   const rows=XLSX.utils.sheet_to_json(ws,{header:1});const map={};
   rows.slice(1).forEach(r=>{
     if(!r[1])return;const id=r[0]||uid();
-    if(!map[id])map[id]={id,name:String(r[1]),role:r[2]?String(r[2]):'',rate:parseFloat(r[3])||0};
-    if(r[4]&&r[5]&&r[6])state.shifts[id+'|'+r[4]]={start:String(r[5]),end:String(r[6])};
+    if(!map[id])map[id]={id,name:String(r[1]),role:r[2]?String(r[2]):'',rate:parseFloat(r[3])||0,phone:r[4]?String(r[4]):'',bday:r[5]?String(r[5]):''};
+    if(r[6]&&r[7]&&r[8])state.shifts[id+'|'+r[6]]={start:String(r[7]),end:String(r[8])};
   });
   Object.values(map).forEach(ne=>{const ex=state.employees.find(x=>x.id===ne.id||x.name===ne.name);if(ex)Object.assign(ex,ne);else state.employees.push(ne);});
 }
