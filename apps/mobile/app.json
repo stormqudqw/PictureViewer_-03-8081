@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Алтай Логистик",
+    "slug": "altay-logistik",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "altaylogistik",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#16171A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.altaylogistik.app"
+    },
+    "android": {
+      "package": "ru.altaylogistik.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#16171A"
+      }
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000"
+    }
+  }
+}

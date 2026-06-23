@@ -1,0 +1,21 @@
+{
+  "name": "altay-logistik",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Сайт и приложение транспортной компании «Алтай Логистик» — грузоперевозки по России, Казахстану и Беларуси.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --filter @altay/db build && pnpm --filter @altay/api build && pnpm --filter @altay/server build && pnpm --filter @altay/web build",
+    "dev": "pnpm -r --parallel dev",
+    "dev:server": "pnpm --filter @altay/server dev",
+    "dev:web": "pnpm --filter @altay/web dev",
+    "dev:mobile": "pnpm --filter @altay/mobile start",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @altay/db generate",
+    "db:migrate": "pnpm --filter @altay/db migrate",
+    "db:seed": "pnpm --filter @altay/db seed"
+  }
+}
